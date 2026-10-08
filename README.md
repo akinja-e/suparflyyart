@@ -32,11 +32,14 @@ The S-rain uses plain Canvas 2D, not Three.js: thousands of flat glyphs need no 
 
 ```
 src/
-  app/                       routes (/ and /future), layout, global tokens
+  app/                       routes: / (intro), /future (quote), /home (balloon scene), /[section]; layout, tokens
   components/
     background/SRain.tsx     React wrapper (pause off-screen, reduced motion)
     home/HomeExperience.tsx  homepage: rain + click-to-enter
     transition/LightWash.tsx fade-to-white exit transition
+    transition/AutoAdvance.tsx  timed hand-off (quote → home)
+    scene/BalloonScene.tsx   home scene: sky + floating balloon (+ SceneParallax.tsx)
+    site/SiteHeader.tsx      header bar + small-screen menu
     providers/SmoothScroll   Lenis
   lib/
     brand/sGlyph.ts          vector S mark (traced from master artwork)
@@ -48,7 +51,20 @@ src/
 public/s-mark.svg            the S mark as SVG
 assets/logo.png              master logo artwork (trace source)
 scripts/trace-logo.py        PNG → SVG/TS tracer
+scripts/cut-balloon.py       splits the home artwork into sky + balloon layers
+docs/design/balloon-scene.jpg  home scene artwork (source)
 ```
+
+## Updating the home scene
+
+The home scene is `docs/design/balloon-scene.jpg`, split into a sky layer and a floating balloon layer. To use new or higher-resolution artwork, replace that file and run:
+
+```bash
+pip install opencv-python numpy
+python scripts/cut-balloon.py
+```
+
+then copy the printed balloon box into `BALLOON` in `src/components/scene/BalloonScene.tsx`.
 
 ## Updating the logo
 
@@ -63,12 +79,12 @@ This rewrites `public/s-mark.svg` and `src/lib/brand/sGlyph.ts`, and the rain pi
 
 ## SRain options
 
-`<SRain glyphSize={18} intensity={0.6} speed={[9, 24]} fade={[0.45, 1.1]} trailOpacity={0.85} repelRadius={76} />`
+`<SRain glyphSize={18} intensity={0.6} speed={[9, 24]} fade={[0.45, 1.1]} trailOpacity={0.5} repelRadius={76} />`
 
 `cursorScale` sets the size of the S that follows the mouse (default `3` = 3× a rain glyph; `0` turns it off) and `cursorSwatch` its colour (default black, e.g. `cursorSwatch={PALETTE.gold}`).
 
 `repelRadius` is the size (CSS px) of the clear space that opens around the mouse or finger; `0` turns it off. Spring feel is tuned by the constants at the top of `SRainEngine.ts` (`SPRING_STIFFNESS`, `POINTER_FOLLOW`, `FIELD_IN`, `FIELD_OUT`, `DEPTH_SHRINK`).
 
-Each stream is drawn in one colour from the brand palette (`src/lib/brand/palette.ts`), re-picked every time it restarts. Pass `palette={[PALETTE.gold, PALETTE.diamond]}` to limit the colours, or change a swatch's `weight` to make it more or less common.
+The rain is black by default. To colour it, pass swatches from `src/lib/brand/palette.ts`, e.g. `palette={BRAND_SWATCHES}` for the full bright palette or `palette={[PALETTE.gold, PALETTE.diamond]}`; each stream then takes one colour, re-picked every time it restarts.
 
 `intensity` will be used to quiet the rain behind content in later phases.

@@ -88,7 +88,7 @@ const CURSOR_OUT = 0.12; // s — quick fade once idle / gone (invisible within 
 const CURSOR_IDLE = 0.75; // s — without movement before it disappears
 const CURSOR_TILT_MAX = (7 * Math.PI) / 180; // leans into fast horizontal moves
 const CURSOR_TILT_GAIN = 1 / 2600; // radians of lean per CSS px/s
-const BURST_SCALE = 7; // on exit, the cursor S swells to 7× its size as it fades into the light
+const BURST_SCALE = 7; // default: on exit, the cursor S swells to 7× its size as it fades into the light
 
 export class SRainEngine {
   private readonly canvas: HTMLCanvasElement;
@@ -143,6 +143,7 @@ export class SRainEngine {
   private burstProgress = 0;
   private burstAlphaFrom = 0;
   private burstScaleFrom = 0;
+  private burstScaleTo = BURST_SCALE;
 
   private rafId = 0;
   private lastTime = 0;
@@ -261,7 +262,7 @@ export class SRainEngine {
    * pushing the rain outward as it grows. If it isn't showing (touch, keyboard),
    * it appears at the given viewport point first. Ignores the pointer from here on.
    */
-  burstCursor(durationMs: number, clientX?: number, clientY?: number): void {
+  burstCursor(durationMs: number, clientX?: number, clientY?: number, scaleTo = BURST_SCALE): void {
     if (!this.cursorSprite || this.burstStart >= 0) return;
     if (this.cursorDrawAlpha() < 0.2 && clientX !== undefined && clientY !== undefined) {
       const rect = this.canvas.getBoundingClientRect();
@@ -276,6 +277,7 @@ export class SRainEngine {
     }
     this.burstStart = performance.now();
     this.burstDuration = Math.max(1, durationMs);
+    this.burstScaleTo = scaleTo;
     this.burstProgress = 0;
   }
 
@@ -546,12 +548,12 @@ export class SRainEngine {
   /**
    * Drawn size of the cursor S (1 = 3× a rain glyph). Normally it grows out of
    * the pointer with the force field, so it's never larger than the space
-   * cleared for it; during the exit burst it swells to BURST_SCALE.
+   * cleared for it; during the exit burst it swells to `burstScaleTo`.
    */
   private cursorDrawScale(): number {
     if (this.burstStart < 0) return this.cursorReveal();
     const grow = 1 - Math.pow(1 - this.burstProgress, 3); // ease-out: fast swell, soft finish
-    return this.burstScaleFrom * (1 + (BURST_SCALE - 1) * grow);
+    return this.burstScaleFrom * (1 + (this.burstScaleTo - 1) * grow);
   }
 
   private cursorDrawAlpha(): number {

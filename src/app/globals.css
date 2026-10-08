@@ -26,6 +26,10 @@
   --diamond: #e6f8ff;
   --diamond-edge: #a98bff;
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* Home room (docs/design/home-mockup.jpg). */
+  --stone: #e0d7ce; /* header bar */
+  --bone: #efe8dc; /* type on the black disc */
 }
 
 @theme inline {
@@ -47,6 +51,10 @@
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
   --font-display: "Chakra Petch", var(--font-geist-sans), system-ui, sans-serif;
+  --font-serif: "Cormorant Garamond", "Cormorant", Georgia, "Times New Roman", serif;
+  --font-ui: "Jost", "Futura", var(--font-geist-sans), system-ui, sans-serif;
+  --color-stone: var(--stone);
+  --color-bone: var(--bone);
 }
 
 html {
@@ -79,11 +87,141 @@ body {
 }
 
 .light-lift {
-  animation: light-lift 1.6s cubic-bezier(0.45, 0, 0.2, 1) 0.15s both;
+  animation: light-lift 1.4s cubic-bezier(0.45, 0, 0.2, 1) 0.15s both;
+}
+
+/*
+ * "Arrive": the camera coming to rest after the homepage dive — content starts
+ * a touch closer and settles into place while the white lifts.
+ */
+@keyframes arrive {
+  from {
+    transform: scale(1.06);
+  }
+  to {
+    transform: none;
+  }
+}
+
+.arrive {
+  animation: arrive 2s cubic-bezier(0.16, 1, 0.3, 1) 0.1s both;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .light-lift {
     display: none;
+  }
+
+  .arrive {
+    animation: none;
+  }
+}
+
+/* ─── Home scene: the balloon over the city ──────────────────────────────────
+ * The scene fills the screen under the 3.75rem header. The "stage" is a box in
+ * the artwork's 1920×1082 frame, scaled to cover (k), so the sky, the floating
+ * balloon and the sun glow stay registered at every size.
+ */
+.scene {
+  height: calc(100dvh - 3.75rem);
+  min-height: 28rem;
+  container-type: size;
+}
+
+.scene-stage {
+  --k: max(100cqw / 1920, 100cqh / 1082);
+  --w: calc(1920 * var(--k));
+  position: absolute;
+  width: var(--w);
+  height: calc(1082 * var(--k));
+  left: calc(50% - var(--w) / 2);
+  top: calc(50% - 541 * var(--k));
+  /* Arrival: the camera settles from slightly closer, then holds. */
+  animation: scene-settle 4.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+  transform-origin: 62% 45%;
+}
+
+/* Pointer parallax (set by SceneParallax): the sky shifts a little, the balloon more. */
+.scene-sky {
+  translate: calc(var(--px, 0) * -4px) calc(var(--py, 0) * -3px);
+}
+
+.scene-balloon {
+  position: absolute;
+  translate: calc(var(--px, 0) * -8px) calc(var(--py, 0) * -5px);
+}
+
+/* The balloon itself breathes on the air: a slow bob and a slight sway. */
+.balloon-float {
+  position: absolute;
+  inset: 0;
+  transform-origin: 50% 8%;
+  animation: balloon-float 7.5s ease-in-out infinite;
+}
+
+.sun-glow {
+  position: absolute;
+  left: calc(73.5% - 16%);
+  top: calc(64.5% - 28%);
+  width: 32%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgb(255 236 180 / 0.55) 0%, rgb(255 200 120 / 0.18) 38%, transparent 70%);
+  mix-blend-mode: screen;
+  animation: sun-breathe 6s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* Tall screens can't hold both the man and the balloon: the camera pans from
+   him across to the balloon, then rests there. */
+@container (max-aspect-ratio: 1/1) {
+  .scene-stage {
+    --from: calc(50cqw - 0.26 * var(--w));
+    --to: calc(50cqw - 0.69 * var(--w));
+    left: 0;
+    translate: var(--to) 0;
+    animation:
+      scene-settle 4.5s cubic-bezier(0.22, 1, 0.36, 1) both,
+      scene-pan 7s cubic-bezier(0.45, 0, 0.25, 1) 1.2s both;
+  }
+}
+
+.menu-in > * {
+  animation: sub-in 0.7s var(--ease-out-expo) both;
+}
+.menu-in > :nth-child(2) { animation-delay: 40ms; }
+.menu-in > :nth-child(3) { animation-delay: 80ms; }
+.menu-in > :nth-child(4) { animation-delay: 120ms; }
+.menu-in > :nth-child(5) { animation-delay: 160ms; }
+.menu-in > :nth-child(6) { animation-delay: 200ms; }
+
+@keyframes scene-settle {
+  from { transform: scale(1.07); }
+  to { transform: none; }
+}
+
+@keyframes scene-pan {
+  from { translate: var(--from) 0; }
+  to { translate: var(--to) 0; }
+}
+
+@keyframes balloon-float {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  30% { transform: translateY(-0.55%) rotate(0.7deg); }
+  65% { transform: translateY(-0.2%) rotate(-0.5deg); }
+}
+
+@keyframes sun-breathe {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1; }
+}
+
+@keyframes sub-in {
+  from { opacity: 0; transform: translateY(0.6em); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scene-stage, .balloon-float, .sun-glow, .menu-in > * {
+    animation: none;
   }
 }

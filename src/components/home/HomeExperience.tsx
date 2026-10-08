@@ -4,58 +4,77 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { SRain } from "@/components/background/SRain";
 import type { SRainEngine } from "@/lib/rain/SRainEngine";
-import { LightWash, LIGHT_WASH_MS } from "@/components/transition/LightWash";
+import { LightWash } from "@/components/transition/LightWash";
 import { usePrefersReducedMotion } from "@/lib/hooks/usePrefersReducedMotion";
 
 const NEXT_ROUTE = "/future";
 
-/** How the rain itself burns out: colours blown out to white, softened, faded. */
-const RAIN_BURN_OUT: Keyframe[] = [
-  { opacity: 1, filter: "brightness(1) saturate(1) blur(0px)" },
-  { opacity: 0.85, filter: "brightness(1.8) saturate(1.3) blur(1px)", offset: 0.35 },
-  { opacity: 0, filter: "brightness(3.2) saturate(0.6) blur(6px)" },
-];
+/** Length of the camera dive, ms. The screen is pure white at the end of it. */
+const DIVE_MS = 1350;
+/** When the white starts to rise, as a fraction of the dive. */
+const WHITE_FROM = 0.55;
+/** How far the camera travels into the rain (scale of the rain layer at the end). */
+const DIVE_DEPTH = 14;
 
 /**
- * The homepage: the S rain, and a click / tap / Enter anywhere that dissolves
- * everything into pure white — the big cursor S swelling and melting into the
- * light — before moving on to the next page.
+ * The camera dive, applied to the whole rain layer around the click point:
+ * a small pull-back (anticipation), then an accelerating push-in that blurs
+ * with speed and blows out to light.
+ */
+function diveKeyframes(): Keyframe[] {
+  return [
+    { transform: "scale(1)", filter: "blur(0px) brightness(1)", easing: "cubic-bezier(0.33, 1, 0.68, 1)" },
+    // Anticipation: the camera eases back a touch before it commits.
+    { transform: "scale(0.965)", filter: "blur(0px) brightness(1)", offset: 0.16, easing: "cubic-bezier(0.7, 0, 0.84, 0)" },
+    // Accelerating dive: speed blur and overexposure build toward the end.
+    { transform: "scale(2.2)", filter: "blur(1px) brightness(1.1)", offset: 0.62, easing: "cubic-bezier(0.55, 0, 1, 0.45)" },
+    { transform: `scale(${DIVE_DEPTH})`, filter: "blur(14px) brightness(1.8)" },
+  ];
+}
+
+/**
+ * The homepage: the S rain, and a click / tap / Enter anywhere that sends the
+ * camera diving into the rain toward that point — through the big S — until
+ * everything blows out to pure white, then moves on to the next page.
  */
 export function HomeExperience() {
   const router = useRouter();
   const reducedMotion = usePrefersReducedMotion();
   const rainLayerRef = useRef<HTMLDivElement>(null);
   const engineRef = useRef<SRainEngine | null>(null);
-  const [washing, setWashing] = useState(false);
+  const [diving, setDiving] = useState(false);
 
-  // Fetch the next page ahead of time so it's ready the moment the light peaks.
+  // Fetch the next page ahead of time so it's ready the moment the screen is white.
   useEffect(() => {
     router.prefetch(NEXT_ROUTE);
   }, [router]);
 
   const begin = useCallback(
     (clientX: number, clientY: number) => {
-      if (washing) return; // already on the way
+      if (diving) return; // already on the way
       if (reducedMotion) {
         router.push(NEXT_ROUTE);
         return;
       }
-      setWashing(true);
-      // The big S swells and melts into the light as the screen goes white.
-      engineRef.current?.burstCursor(LIGHT_WASH_MS, clientX, clientY);
-      rainLayerRef.current?.animate(RAIN_BURN_OUT, {
-        duration: LIGHT_WASH_MS * 0.85,
-        easing: "cubic-bezier(0.4, 0, 0.2, 1)",
-        fill: "forwards",
-      });
+      setDiving(true);
+
+      // The big S stays put at the focal point and melts away as the camera
+      // flies through it (the dive itself does the enlarging).
+      engineRef.current?.burstCursor(DIVE_MS * 0.8, clientX, clientY, 1.4);
+
+      const layer = rainLayerRef.current;
+      if (layer) {
+        layer.style.transformOrigin = `${clientX}px ${clientY}px`;
+        layer.animate(diveKeyframes(), { duration: DIVE_MS, fill: "forwards" });
+      }
     },
-    [washing, reducedMotion, router],
+    [diving, reducedMotion, router],
   );
 
   return (
-    <main className="relative min-h-dvh">
-      {/* Fixed layer so the burn-out filter applies to the full-screen canvas. */}
-      <div ref={rainLayerRef} className="pointer-events-none fixed inset-0">
+    <main className="relative min-h-dvh overflow-hidden">
+      {/* Fixed layer so the dive's scale and blur apply to the full-screen canvas. */}
+      <div ref={rainLayerRef} className="pointer-events-none fixed inset-0 will-change-transform">
         <SRain className="absolute inset-0 h-full w-full" engineRef={engineRef} />
       </div>
 
@@ -65,16 +84,16 @@ export function HomeExperience() {
       <button
         type="button"
         aria-label="Enter SUPARFLYYART"
-        disabled={washing}
+        disabled={diving}
         onClick={(e) => {
-          // Keyboard "clicks" report 0,0 — start those from the centre instead.
+          // Keyboard "clicks" report 0,0 — dive toward the centre instead.
           const fromKeyboard = e.detail === 0;
           begin(fromKeyboard ? window.innerWidth / 2 : e.clientX, fromKeyboard ? window.innerHeight / 2 : e.clientY);
         }}
         className="fixed inset-0 h-full w-full cursor-pointer bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ink/40"
       />
 
-      {washing && <LightWash onComplete={() => router.push(NEXT_ROUTE)} />}
+      {diving && <LightWash durationMs={DIVE_MS} startAt={WHITE_FROM} onComplete={() => router.push(NEXT_ROUTE)} />}
     </main>
   );
 }

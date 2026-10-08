@@ -6,6 +6,13 @@ import { SmoothScroll } from "@/components/providers/SmoothScroll";
 // geometry as the S mark. Self-hosted, so no font CDN at build or runtime.
 import "@fontsource/chakra-petch/300.css";
 import "@fontsource/chakra-petch/400.css";
+// Home room typography (from the mockup): Cormorant Garamond for the disc's
+// inscription and menu, Jost — a Futura-like geometric — for the bar and wordmark.
+import "@fontsource/cormorant-garamond/400.css";
+import "@fontsource/cormorant-garamond/500.css";
+import "@fontsource/jost/400.css";
+import "@fontsource/jost/500.css";
+import "@fontsource/jost/600.css";
 import "./globals.css";
 
 export const metadata: Metadata = {
