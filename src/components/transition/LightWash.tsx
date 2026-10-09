@@ -11,15 +11,17 @@ interface LightWashProps {
   /** 0–1: how far into `durationMs` the white starts to rise (it's invisible before that). */
   startAt?: number;
   onComplete: () => void;
+  /** Background class of the light it fades to (default pure white). */
+  tone?: string;
 }
 
 /**
- * A full-screen fade to pure white — the "cut to white" at the end of the
+ * A full-screen fade to light (pure white unless `tone` says otherwise) — the "cut to white" at the end of the
  * camera dive. It stays invisible until `startAt`, rises to solid white by the
  * end, holds briefly, then calls `onComplete`. The next page starts on the
  * same white, so the hand-off is invisible.
  */
-export function LightWash({ durationMs, startAt = 0, onComplete }: LightWashProps) {
+export function LightWash({ durationMs, startAt = 0, onComplete, tone = "bg-paper" }: LightWashProps) {
   const ref = useRef<HTMLDivElement>(null);
   const done = useRef(onComplete);
 
@@ -55,5 +57,5 @@ export function LightWash({ durationMs, startAt = 0, onComplete }: LightWashProp
     };
   }, [durationMs, startAt]);
 
-  return <div ref={ref} aria-hidden="true" className="pointer-events-none fixed inset-0 z-50 bg-paper opacity-0" />;
+  return <div ref={ref} aria-hidden="true" className={`pointer-events-none fixed inset-0 z-50 opacity-0 ${tone}`} />;
 }

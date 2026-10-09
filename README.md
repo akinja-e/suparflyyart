@@ -38,7 +38,7 @@ src/
     home/HomeExperience.tsx  homepage: rain + click-to-enter
     transition/LightWash.tsx fade-to-white exit transition
     transition/AutoAdvance.tsx  timed hand-off (quote → home)
-    scene/BalloonScene.tsx   home scene: sky + floating balloon (+ SceneParallax.tsx)
+    scene/BalloonScene.tsx   home scene: depth planes, man, canvas, balloon (+ SceneCamera.tsx)
     site/SiteHeader.tsx      header bar + small-screen menu
     providers/SmoothScroll   Lenis
   lib/
@@ -51,20 +51,20 @@ src/
 public/s-mark.svg            the S mark as SVG
 assets/logo.png              master logo artwork (trace source)
 scripts/trace-logo.py        PNG → SVG/TS tracer
-scripts/cut-balloon.py       splits the home artwork into sky + balloon layers
-docs/design/balloon-scene.jpg  home scene artwork (source)
+scripts/cut-scene.py         splits the home artwork into sky, balloon, man and canvas layers
+docs/design/balloon-scene.png  home scene artwork (source)
 ```
 
 ## Updating the home scene
 
-The home scene is `docs/design/balloon-scene.jpg`, split into a sky layer and a floating balloon layer. To use new or higher-resolution artwork, replace that file and run:
+The home scene is `docs/design/balloon-scene.png`, split into sky, balloon, man and canvas layers. To use new or higher-resolution artwork, replace that file and run:
 
 ```bash
-pip install opencv-python numpy
-python scripts/cut-balloon.py
+pip install opencv-python numpy rembg onnxruntime
+python scripts/cut-scene.py
 ```
 
-then copy the printed balloon box into `BALLOON` in `src/components/scene/BalloonScene.tsx`.
+then copy the printed boxes into `BALLOON`, `MAN` and `CANVAS` in `src/components/scene/BalloonScene.tsx`.
 
 ## Updating the logo
 

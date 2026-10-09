@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import { SiteHeader } from "@/components/site/SiteHeader";
 import { BalloonScene } from "@/components/scene/BalloonScene";
+import { SceneReveal } from "@/components/scene/SceneReveal";
 
 export const metadata: Metadata = {
   title: "SUPARFLYY — A collectible universe",
@@ -8,17 +8,17 @@ export const metadata: Metadata = {
 };
 
 /**
- * Home: the balloon scene. Arrived at from the quote page through white, so it
- * opens under the same white light, which lifts while the camera settles.
+ * Home: the balloon scene, full screen with no header. Arrived at from the quote
+ * page through the warm intro light (--sunset); the light holds until every
+ * layer has loaded (SceneReveal), then lifts while the camera settles.
  */
 export default function HomePage() {
   return (
     <>
-      <SiteHeader />
-      <main className="pt-[3.75rem]">
+      <main>
         <BalloonScene />
       </main>
-      <div aria-hidden="true" className="light-lift pointer-events-none fixed inset-0 z-50 bg-paper" />
+      <SceneReveal />
     </>
   );
 }

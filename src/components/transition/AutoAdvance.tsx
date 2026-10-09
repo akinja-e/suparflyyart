@@ -12,14 +12,16 @@ interface AutoAdvanceProps {
   afterMs: number;
   /** Length of the fade to white on the way out, ms. */
   fadeMs?: number;
+  /** Background class of the light it fades to (default pure white). */
+  tone?: string;
 }
 
 /**
- * Moves on to `href` by itself after `afterMs`, fading the page to pure white
- * first so the next page can open from the same white. Prefetches the next page
+ * Moves on to `href` by itself after `afterMs`, fading the page to light first
+ * so the next page can open from the same light. Prefetches the next page
  * so it's ready the moment the screen is white.
  */
-export function AutoAdvance({ href, afterMs, fadeMs = 750 }: AutoAdvanceProps) {
+export function AutoAdvance({ href, afterMs, fadeMs = 750, tone }: AutoAdvanceProps) {
   const router = useRouter();
   const reducedMotion = usePrefersReducedMotion();
   const [leaving, setLeaving] = useState(false);
@@ -33,5 +35,5 @@ export function AutoAdvance({ href, afterMs, fadeMs = 750 }: AutoAdvanceProps) {
     return () => window.clearTimeout(timer);
   }, [router, href, afterMs, reducedMotion]);
 
-  return leaving ? <LightWash durationMs={fadeMs} onComplete={() => router.push(href)} /> : null;
+  return leaving ? <LightWash durationMs={fadeMs} tone={tone} onComplete={() => router.push(href)} /> : null;
 }

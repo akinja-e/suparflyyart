@@ -6,6 +6,13 @@ import { SRain } from "@/components/background/SRain";
 import type { SRainEngine } from "@/lib/rain/SRainEngine";
 import { LightWash } from "@/components/transition/LightWash";
 import { usePrefersReducedMotion } from "@/lib/hooks/usePrefersReducedMotion";
+import { PreloadImages } from "@/components/transition/PreloadImages";
+import { WarmRoutes } from "@/components/transition/WarmRoutes";
+import { SCENE_IMAGE_LIST } from "@/lib/scene/assets";
+import { SCENE_CURSOR_SWATCH, SCENE_RAIN_PALETTE } from "@/lib/scene/palette";
+import { HOME_ROUTE } from "@/lib/site/nav";
+
+const WARM = ["/future", HOME_ROUTE];
 
 const NEXT_ROUTE = "/future";
 
@@ -72,13 +79,23 @@ export function HomeExperience() {
   );
 
   return (
-    <main className="relative min-h-dvh overflow-hidden">
+    <main className="relative min-h-dvh overflow-hidden bg-sunset">
       {/* Fixed layer so the dive's scale and blur apply to the full-screen canvas. */}
       <div ref={rainLayerRef} className="pointer-events-none fixed inset-0 will-change-transform">
-        <SRain className="absolute inset-0 h-full w-full" engineRef={engineRef} />
+        <SRain
+          className="absolute inset-0 h-full w-full"
+          engineRef={engineRef}
+          palette={SCENE_RAIN_PALETTE}
+          cursorSwatch={SCENE_CURSOR_SWATCH}
+          trailOpacity={0.8}
+        />
       </div>
 
       <h1 className="sr-only">SUPARFLYYART</h1>
+
+      {/* Start loading the balloon scene while the visitor watches the rain. */}
+      <PreloadImages srcs={SCENE_IMAGE_LIST} />
+      <WarmRoutes hrefs={WARM} />
 
       {/* The whole screen is the way in. A real button keeps it keyboard- and screen-reader-friendly. */}
       <button
@@ -93,7 +110,7 @@ export function HomeExperience() {
         className="fixed inset-0 h-full w-full cursor-pointer bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ink/40"
       />
 
-      {diving && <LightWash durationMs={DIVE_MS} startAt={WHITE_FROM} onComplete={() => router.push(NEXT_ROUTE)} />}
+      {diving && <LightWash durationMs={DIVE_MS} startAt={WHITE_FROM} tone="bg-sunset" onComplete={() => router.push(NEXT_ROUTE)} />}
     </main>
   );
 }

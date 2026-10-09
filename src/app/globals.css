@@ -8,6 +8,7 @@
  */
 :root {
   --paper: #ffffff;
+  --sunset: #ffeacc; /* the warm light the intro, the quote and every fade between pages share */
   --ink: #0a0a0a;
   --ink-muted: #6b6b6b;
   --hairline: rgb(10 10 10 / 0.12);
@@ -34,6 +35,7 @@
 
 @theme inline {
   --color-paper: var(--paper);
+  --color-sunset: var(--sunset);
   --color-ink: var(--ink);
   --color-ink-muted: var(--ink-muted);
   --color-hairline: var(--hairline);
@@ -90,6 +92,11 @@ body {
   animation: light-lift 1.4s cubic-bezier(0.45, 0, 0.2, 1) 0.15s both;
 }
 
+/* A quicker lift, for the quote page: the words come up out of the light. */
+.light-lift-quick {
+  animation: light-lift 0.7s cubic-bezier(0.45, 0, 0.2, 1) 0.05s both;
+}
+
 /*
  * "Arrive": the camera coming to rest after the homepage dive — content starts
  * a touch closer and settles into place while the white lifts.
@@ -108,7 +115,8 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .light-lift {
+  .light-lift,
+  .light-lift-quick {
     display: none;
   }
 
@@ -118,37 +126,127 @@ body {
 }
 
 /* ─── Home scene: the balloon over the city ──────────────────────────────────
- * The scene fills the screen under the 3.75rem header. The "stage" is a box in
- * the artwork's 1920×1082 frame, scaled to cover (k), so the sky, the floating
- * balloon and the sun glow stay registered at every size.
+ * The scene fills the whole screen (no header). The "stage" is a box in the
+ * artwork's 2560×1441 frame, scaled to cover (k) plus 4% spare so the depth
+ * planes can move without showing an edge. Every layer is placed in that
+ * frame, so they stay registered at every size.
+ *
+ * Depth: SceneCamera writes the camera position (−1…1) to --cx / --cy. Each
+ * plane moves the opposite way by its own amount (fractions of the stage width
+ * --w), nearer planes more. The plaza is one plane seen at a slant, so instead
+ * of sliding it shears: no movement at the horizon (78.5% down), the most at
+ * the bottom edge. The man moves exactly with the plaza at his feet (96.7%
+ * down), so he never slides on the ground.
  */
 .scene {
-  height: calc(100dvh - 3.75rem);
+  height: 100dvh;
   min-height: 28rem;
   container-type: size;
+  --cx: 0;
+  --cy: 0;
 }
 
 .scene-stage {
-  --k: max(100cqw / 1920, 100cqh / 1082);
-  --w: calc(1920 * var(--k));
+  --k: calc(max(100cqw / 2560, 100cqh / 1441) * 1.04);
+  --w: calc(2560 * var(--k));
   position: absolute;
   width: var(--w);
-  height: calc(1082 * var(--k));
+  height: calc(1441 * var(--k));
   left: calc(50% - var(--w) / 2);
-  top: calc(50% - 541 * var(--k));
+  top: calc(50% - 720.5 * var(--k));
   /* Arrival: the camera settles from slightly closer, then holds. */
   animation: scene-settle 4.5s cubic-bezier(0.22, 1, 0.36, 1) both;
   transform-origin: 62% 45%;
 }
 
-/* Pointer parallax (set by SceneParallax): the sky shifts a little, the balloon more. */
-.scene-sky {
-  translate: calc(var(--px, 0) * -4px) calc(var(--py, 0) * -3px);
+/* The settle (and the tall-screen pan) wait until SceneReveal says every layer
+   is loaded, so the camera starts moving as the light lifts. */
+.scene:not([data-ready]) .scene-stage {
+  animation-play-state: paused;
+}
+
+.scene-far,
+.scene-ground {
+  position: absolute;
+  inset: 0;
+}
+
+/* Far plane: sky, sun, skyline — 0.3% of the stage width at full camera travel. */
+.scene-far {
+  translate: calc(var(--cx) * var(--w) * -0.003) calc(var(--cy) * var(--w) * -0.002);
+}
+
+/* The plaza, below the horizon: starts where the far plane is, and shears to
+   1.6% (sideways) and 1% (up/down) at the bottom edge. 6.13deg = atan(1.3% of
+   the width over the plaza's depth on screen, 21.5% of the height). */
+.scene-ground {
+  clip-path: inset(78.5% 0 0 0);
+  transform-origin: 50% 78.5%;
+  translate: calc(var(--cx) * var(--w) * -0.003) calc(var(--cy) * var(--w) * -0.002);
+  transform: skewX(calc(var(--cx) * -6.13deg)) scaleY(calc(1 - var(--cy) * 0.066));
 }
 
 .scene-balloon {
   position: absolute;
-  translate: calc(var(--px, 0) * -8px) calc(var(--py, 0) * -5px);
+  translate: calc(var(--cx) * var(--w) * -0.0055) calc(var(--cy) * var(--w) * -0.0035);
+}
+
+/* The man stands on the plaza: he moves with the ground at his feet. */
+.scene-man {
+  position: absolute;
+  translate: calc(var(--cx) * var(--w) * -0.014) calc(var(--cy) * var(--w) * -0.0088);
+}
+
+.scene-far,
+.scene-ground,
+.scene-balloon,
+.scene-man {
+  will-change: translate, transform;
+}
+
+/* Contact shadow on the wet plaza, so his shoes sit on the ground as he moves. */
+.man-shadow {
+  position: absolute;
+  left: 2%;
+  width: 84%;
+  top: 95%;
+  height: 4.5%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgb(70 25 10 / 0.42), rgb(70 25 10 / 0.18) 60%, transparent);
+  mix-blend-mode: multiply;
+}
+
+/* He shifts his weight from foot to foot and breathes (the chest rises a touch,
+   so the figure lifts from the feet). Two animations on separate properties
+   (rotate, scale) of one layer, both pivoting at his feet. */
+.man-figure {
+  position: absolute;
+  inset: 0;
+  transform-origin: 50% 97%;
+  animation:
+    man-sway 9s ease-in-out infinite,
+    man-breathe 4.6s ease-in-out infinite;
+}
+
+/* The canvas rocks gently in his grip (pivot where it presses against his side). */
+.canvas-rock {
+  position: absolute;
+  transform-origin: 82% 72%;
+  animation: canvas-rock 6.4s ease-in-out infinite;
+}
+
+/* A soft band of sunset light slides across the blank canvas now and then —
+   the canvas is the future he hasn't painted yet. Clipped to the canvas shape. */
+.canvas-sheen {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 38%, rgb(255 246 222 / 0.55) 50%, transparent 62%);
+  background-size: 300% 100%;
+  background-position: 100% 0;
+  mask: url("/scene/canvas.webp") center / 100% 100% no-repeat;
+  mix-blend-mode: screen;
+  animation: canvas-sheen 8s ease-in-out 2.5s infinite;
+  pointer-events: none;
 }
 
 /* The balloon itself breathes on the air: a slow bob and a slight sway. */
@@ -159,6 +257,7 @@ body {
   animation: balloon-float 7.5s ease-in-out infinite;
 }
 
+/* The sun glow lives on the far plane (position in % of the frame). */
 .sun-glow {
   position: absolute;
   left: calc(73.5% - 16%);
@@ -166,8 +265,7 @@ body {
   width: 32%;
   aspect-ratio: 1;
   border-radius: 50%;
-  background: radial-gradient(circle, rgb(255 236 180 / 0.55) 0%, rgb(255 200 120 / 0.18) 38%, transparent 70%);
-  mix-blend-mode: screen;
+  background: radial-gradient(circle, rgb(255 240 200 / 0.4) 0%, rgb(255 214 150 / 0.12) 38%, transparent 70%);
   animation: sun-breathe 6s ease-in-out infinite;
   pointer-events: none;
 }
@@ -205,6 +303,26 @@ body {
   to { translate: var(--to) 0; }
 }
 
+@keyframes man-sway {
+  0%, 100% { rotate: -0.35deg; }
+  50% { rotate: 0.35deg; }
+}
+
+@keyframes man-breathe {
+  0%, 100% { scale: 1 1; }
+  42% { scale: 1.003 1.007; }
+}
+
+@keyframes canvas-rock {
+  0%, 100% { rotate: -0.8deg; }
+  50% { rotate: 0.9deg; }
+}
+
+@keyframes canvas-sheen {
+  0%, 45% { background-position: 100% 0; }
+  85%, 100% { background-position: 0% 0; }
+}
+
 @keyframes balloon-float {
   0%, 100% { transform: translateY(0) rotate(0deg); }
   30% { transform: translateY(-0.55%) rotate(0.7deg); }
@@ -221,7 +339,7 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .scene-stage, .balloon-float, .sun-glow, .menu-in > * {
+  .scene-stage, .balloon-float, .sun-glow, .man-figure, .canvas-rock, .canvas-sheen, .menu-in > * {
     animation: none;
   }
 }

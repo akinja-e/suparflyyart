@@ -1,24 +1,41 @@
 import Image from "next/image";
-import { SceneParallax } from "./SceneParallax";
+import type { CSSProperties } from "react";
+import { SCENE_IMAGES } from "@/lib/scene/assets";
+import { SceneCamera } from "./SceneCamera";
 
-/**
- * Where the balloon sits in the 1920×1082 artwork, in % of the frame.
- * Printed by scripts/cut-balloon.py — re-run it and update these if the artwork changes.
- */
-const BALLOON = { left: 61.458, top: 17.006, width: 15.625, height: 34.935 };
+/** A layer's box in the 2560×1441 frame, in % — printed by scripts/cut-scene.py. */
+type Box = { left: number; top: number; width: number; height: number };
+
+/** Re-run scripts/cut-scene.py and update these if the artwork changes. */
+const BALLOON: Box = { left: 61.423, top: 17.003, width: 15.61, height: 34.857 };
+const MAN: Box = { left: 14.294, top: 9.989, width: 21.292, height: 88.098 };
+const CANVAS: Box = { left: 11.782, top: 31.243, width: 11.423, height: 29.862 };
+
+/** Position a box absolutely, in % of its parent's box. */
+function place(box: Box, parent: Box = { left: 0, top: 0, width: 100, height: 100 }): CSSProperties {
+  return {
+    left: `${((box.left - parent.left) / parent.width) * 100}%`,
+    top: `${((box.top - parent.top) / parent.height) * 100}%`,
+    width: `${(box.width / parent.width) * 100}%`,
+    height: `${(box.height / parent.height) * 100}%`,
+  };
+}
 
 /**
  * The home scene: at sunset, a man holding a blank canvas watches a red balloon
- * bearing the S rise over the city. Built from docs/design/balloon-scene.jpg,
- * split into two layers by scripts/cut-balloon.py so the balloon can float:
+ * bearing the S rise over the city. Built from docs/design/balloon-scene.png,
+ * cut into layers by scripts/cut-scene.py and rebuilt here as depth planes:
  *
- *  - sky.webp      the scene with the balloon removed
- *  - balloon.webp  the balloon and basket on transparency
+ *  far     sky, sun and skyline (sky.webp above the horizon) — barely moves
+ *  ground  the plaza (sky.webp below the horizon) — shears in perspective,
+ *          more at the bottom (near) than at the horizon (far)
+ *  balloon a little nearer than the sky; bobs and sways on the air
+ *  man     stands on the plaza, so he moves with the ground at his feet;
+ *          he breathes and shifts his weight, and the canvas rocks in his grip
  *
- * Both sit on a "stage" in the artwork's frame (see .scene-stage in globals.css),
- * so they stay registered at any screen size. On arrival the camera settles; the
- * balloon then bobs and sways, the sun breathes, and the pointer adds a little
- * depth. Tall phone screens get a slow pan from the man across to the balloon.
+ * SceneCamera drifts the camera (and follows the mouse); globals.css turns the
+ * camera position into each plane's offset. This is 2.5D — flat painted planes
+ * moved at their own depth — which reads as 3D at a fraction of WebGL's cost.
  */
 export function BalloonScene() {
   return (
@@ -28,36 +45,42 @@ export function BalloonScene() {
       </h1>
 
       <div className="scene-stage">
-        <div className="scene-sky absolute inset-[-1%]">
+        <div className="scene-far">
           <Image
-            src="/scene/sky.webp"
+            src={SCENE_IMAGES.sky}
+            unoptimized
             alt="At sunset, a man holding a blank canvas stands on a wet plaza and watches a red hot-air balloon marked with an S rise over the city skyline."
             fill
             preload
             sizes="100vw"
             className="object-cover"
           />
+          <div className="sun-glow" aria-hidden="true" />
         </div>
 
-        <div className="sun-glow" aria-hidden="true" />
+        <div className="scene-ground" aria-hidden="true">
+          <Image src={SCENE_IMAGES.sky} unoptimized alt="" fill sizes="100vw" className="object-cover" />
+        </div>
 
-        <div
-          className="scene-balloon"
-          style={{
-            left: `${BALLOON.left}%`,
-            top: `${BALLOON.top}%`,
-            width: `${BALLOON.width}%`,
-            height: `${BALLOON.height}%`,
-          }}
-          aria-hidden="true"
-        >
+        <div className="scene-balloon" style={place(BALLOON)} aria-hidden="true">
           <div className="balloon-float">
-            <Image src="/scene/balloon.webp" alt="" fill sizes="20vw" className="object-contain" />
+            <Image src={SCENE_IMAGES.balloon} unoptimized alt="" fill sizes="20vw" className="object-contain" />
+          </div>
+        </div>
+
+        <div className="scene-man" style={place(MAN)} aria-hidden="true">
+          <div className="man-shadow" />
+          <div className="man-figure">
+            <Image src={SCENE_IMAGES.man} unoptimized alt="" fill preload sizes="25vw" className="object-contain" />
+            <div className="canvas-rock" style={place(CANVAS, MAN)}>
+              <Image src={SCENE_IMAGES.canvas} unoptimized alt="" fill sizes="15vw" className="object-contain" />
+              <div className="canvas-sheen" />
+            </div>
           </div>
         </div>
       </div>
 
-      <SceneParallax />
+      <SceneCamera />
     </section>
   );
 }
